@@ -76,15 +76,12 @@ hook.Add("Tick","esrvAntiLag",function()
     if ntime < 10 or ntime >= 17 then alreadyLags = alreadyLags + 1 end
     
     alreadyLags = alreadyLags - alreadyLags%0.1
-    if ntime > 45 then
+    if ntime > 100 or alreadyLags > 75 then
         checkLagProps() 
-        --E2stop()
-    end
-
-    if ntime > 45 and alreadyLags > 95 then
-        checkLagProps()
-        freezeAll()
-        E2stop()
+        if alreadyLags > 128 then
+		freezeAll()
+		E2stop()		
+	end
     end
 
     if ntime > 700 then
