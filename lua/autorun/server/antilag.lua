@@ -33,11 +33,17 @@ local function checkLagProps()
        key = v + 1
     end
 
+	key = key - 1
     if key <= 1 then return end
+
+    local str = ""
+    for k, v in pairs( tbl ) do
+		str = str .. k .. " - " .. v .. "\n"
+    end
 
     local ply = player.GetAll()
     for i=1,#ply do
-        ply[i]:PrintMessage(3,"Было найдено "..key.." конфликтных пропов у "..players.." игроков!")
+        ply[i]:PrintMessage(3,"Было найдено "..key.." конфликтных пропов у "..players.." игроков! \n"..str)
     end
 
 
@@ -56,6 +62,8 @@ local function freezeAll()
         ply[i]:PrintMessage(3,"Заморозка всех пропов.") 
     end
 
+    alreadyLags = alreadyLags - (alreadyLags/2)
+
 end
 
 local function E2stop()
@@ -63,6 +71,55 @@ local function E2stop()
     local fnd = ents.FindByClass("gmod_wire_expression2")
     for i=1,#fnd do
         fnd[i]:PCallHook( "destruct" )
+    end
+
+end
+
+local function ExperementalFinder()
+
+    local class = "prop_physics"
+    local all = ents.FindByClass(class)
+    local fnd = all[math.random(#all)]
+
+    local owners = {}
+    local needSendMsg = false
+
+    local fnd = ents.FindInSphere( fnd:GetPos(), 45)
+
+    if #fnd >= 15 then
+
+        for i=1,(#fnd-#fnd/5) do
+
+            local rand = fnd[math.random(#fnd)]
+
+            if not IsValid(rand:GetPhysicsObject()) then continue end
+
+            if rand:GetClass() == "prop_physics" then
+
+                 local owner = tostring( fnd[i]:CPPIGetOwner() )
+                 if not owners[owner] then owners[owner] = 0 end
+                 owners[owner] = owners[owner] + 1; needSendMsg = true
+
+
+                rand:Remove()
+
+            end
+
+        end
+
+    end
+
+    if not needSendMsg then return end
+
+    local str = "На сервере обнаружено подозрение на попытку краша! \n Подозреваемые игроки: \n "
+    for k, v in pairs( owners ) do
+        if k == "nil" then continue end
+        str = str .. k .. " (Подозреваемые пропы: "..v.. ")\n"
+    end
+
+    local ply = player.GetAll()
+    for i=1,#ply do
+        ply[i]:PrintMessage(3,str)
     end
 
 end
@@ -80,7 +137,7 @@ hook.Add("Tick","esrvAntiLag",function()
         checkLagProps() 
         if alreadyLags > 128 then
 		freezeAll()
-		E2stop()		
+		E2stop()	
 	end
     end
 
@@ -94,4 +151,8 @@ hook.Add("Tick","esrvAntiLag",function()
 
     time = SysTime()
 end)
-print("antilag.lua loaded!")
+
+
+timer.Create( "esrv.AntiLag.TimerFinder_BadProps",3,0, function() 
+    ExperementalFinder()
+end)
