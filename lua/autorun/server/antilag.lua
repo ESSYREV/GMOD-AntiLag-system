@@ -3,6 +3,7 @@
 	Изначально антилаг создавался на локальном сервере, 
 	где, естественно, нагрузка меньше.
 --]] 
+timer.Create( "removeRagdolls", 3, 0, function() game.RemoveRagdolls() end )
 
 local time = SysTime()
 local alreadyLags = 0
@@ -30,7 +31,7 @@ local function checkLagProps()
     local players = 0
     for k, v in pairs( tbl ) do
        players = players + 1
-       key = v + 1
+       key = key + 1
     end
 
 	key = key - 1
@@ -80,13 +81,16 @@ local function ExperementalFinder()
     local class = "prop_physics"
     local all = ents.FindByClass(class)
     local fnd = all[math.random(#all)]
-
+    --print("Энтити на проверке: "..tostring(fnd))
+    
     local owners = {}
     local needSendMsg = false
 
     local fnd = ents.FindInSphere( fnd:GetPos(), 45)
-
-    if #fnd >= 15 then
+    --print("Найдено энтити рядом: "..#fnd.."\n \n")
+    
+    local kostil = 0
+    if #fnd >= 25 then
 
         for i=1,(#fnd-#fnd/5) do
 
@@ -154,5 +158,9 @@ end)
 
 
 timer.Create( "esrv.AntiLag.TimerFinder_BadProps",3,0, function() 
+    print("\n \n Начата проверка на краш!")
     ExperementalFinder()
 end)
+
+print("\n \n antilag.lua loaded! \n \n")
+
