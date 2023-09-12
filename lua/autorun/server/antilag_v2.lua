@@ -181,9 +181,6 @@ hook.Add("Tick","esrv_collisionCount-shouldberemoved",function()
 		ply:PrintMessage(3,str)
 	end
 
-	--local embeds = discord.commands.createEmbeds("Попытка крашнуть сервер",str,"FF0000")
-	--http.Post( "http://game11690.worldhosts.fun/discord/main.php", { method = "write",embeds = embeds, webhook = "https://discord.com/api/webhooks/1124644805151051888/QJYalIkaS42V8TQnlOwcf1QxDCdaHEMkhe8UhU9xz8IVJwj_ObFPI8vLiHcbATpn-7MD"})
-
 
 end)
 
