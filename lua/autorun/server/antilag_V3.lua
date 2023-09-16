@@ -143,6 +143,7 @@ hook.Add("Tick","esrv_collisionCount-shouldberemoved",function()
     for player, ptable in pairs(PlayerUnfreezes) do
     	if PlayerUnfreezes[player]['bool'] == true then
 
+		if PlayerUnfreezes[player]['props'] == nil then continue end
     		message[player] = (message[player] or 0) + 1
 
     		for _, prop in pairs(PlayerUnfreezes[player]['props']) do
