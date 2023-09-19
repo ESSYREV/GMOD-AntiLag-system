@@ -4,12 +4,13 @@ local settings = {}
 
 settings.polygons = 100000		------ Максимальное количество обработанных полигонов в одном чанке
 
-settings.count = 45				------ Максимальное количество обработанных колизий в одном чанке
+settings.count = 65				------ Максимальное количество обработанных колизий в одном чанке
 settings.delay = 0.5			------ Время обнуления количества столкновений в чанках [секунда]
 
 settings.size = 10 				------ Размер одного чанка для обработки колизии
 
-
+settings.player = 6 			------ Максимальное количество столкновений игрока с пропами [время обновления settings.delay]
+								------ Имеется ввиду, к примеру: игрок может столкнуться за 1 тик с 4 пропами максимум.
 
 
 local process_collision
@@ -19,6 +20,7 @@ local tick
 local chunk = {}
 local chunk_unfreeze = {}
 local server_frametime = {}
+local server_player_ents = {}
 local server_frametime_next = 0
 local can_send_message = 0
 local last_reset = 0
@@ -42,9 +44,33 @@ hook.Add("OnEntityCreated","esrv-antilag",function(ent)
 end)
 
 hook.Add( "ShouldCollide", "esrv-antilag", function( ent1, ent2 )
-	if ent1.meshConvexes or ent2.meshConvexes then
+
+	local e1p = ent1:IsPlayer()
+	local e2p = ent2:IsPlayer()
+
+	if e1p or e2p then
+
+		if e1p then
+
+			if server_player_ents[ent1] == nil then server_player_ents[ent1] = {} end
+			if table.Count(server_player_ents[ent1]) > settings.player then return false end
+			server_player_ents[ent1][ent2] = true
+
+		else
+
+			if server_player_ents[ent2] == nil then server_player_ents[ent2] = {} end
+			if table.Count(server_player_ents[ent2]) > settings.player then return false end
+			server_player_ents[ent2][ent1] = true
+
+
+		end
+
+	end
+
+	if (ent1.meshConvexes or ent2.meshConvexes) and (e1p==false and e2p==false) then
 		process_collision(ent1,ent2)
 	end
+
 end)
 
 hook.Add( "Tick", "esrv-antilag", function() tick() end)
@@ -94,8 +120,6 @@ process_collision = function(ent1,ent2)
 	ent1.collisionCount = ent1.collisionCount + 1
 	ent2.collisionCount = ent1.collisionCount + 1
 
-
-	print(chunk[position])
 	if ent1.shouldFreeze or ent2.shouldFreeze then 
 		return false
 	end
@@ -104,6 +128,7 @@ process_collision = function(ent1,ent2)
 		chunk["count"..position] > settings.count or
 		ent1.collisionCount >= settings.count or
 		ent2.collisionCount >= settings.count then
+
 
 			ent1.shouldFreeze = true
 			ent2.shouldFreeze = true
@@ -193,8 +218,14 @@ tick = function()
 
 	if last_reset < CurTime() then
 		chunk = {}
+
+		--for _, ply in pairs(player.GetAll()) do
+		--	ply.playerCollision = 0
+		--end
+
 		last_reset = CurTime() + settings.delay
 	end
+
 
 	for player,_ in pairs(chunk_unfreeze) do
 		print(chunk_unfreeze[player]['message'])
@@ -204,6 +235,7 @@ tick = function()
 	end
 
 	chunk_unfreeze = {}
+	server_player_ents = {}
 
 end
 
