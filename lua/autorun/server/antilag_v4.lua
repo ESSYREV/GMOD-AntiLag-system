@@ -2,17 +2,23 @@ print("Essyrev AntiLag system: Loading ")
 
 local settings = {}
 
-settings.polygons = 100000		------ Максимальное количество обработанных полигонов в одном чанке
+settings.polygons = 145000		------ Максимальное количество обработанных полигонов в одном чанке
 
 settings.count = 65				------ Максимальное количество обработанных колизий в одном чанке
 settings.delay = 0.5			------ Время обнуления количества столкновений в чанках [секунда]
 
 settings.size = 10 				------ Размер одного чанка для обработки колизии
 
+settings.enable_player_check = false
 settings.player = 6 			------ Максимальное количество столкновений игрока с пропами [время обновления settings.delay]
 								------ Имеется ввиду, к примеру: игрок может столкнуться за 1 тик с 4 пропами максимум.
+								------ Большие числа могут вызвать краш сервера!!!
+								------ А низкие могут мешать игрокам нормально передвигаться в своих постройках
+								------ Не используйте это, оно ужасно.
 
 
+
+--settings.playerupdate = 0.05
 local process_collision
 local onEntityCreated
 local canunfreeze
@@ -22,6 +28,7 @@ local chunk_unfreeze = {}
 local server_frametime = {}
 local server_player_ents = {}
 local server_frametime_next = 0
+local player_update_ents = 0
 local can_send_message = 0
 local last_reset = 0
 local last_tick = 0
@@ -48,19 +55,25 @@ hook.Add( "ShouldCollide", "esrv-antilag", function( ent1, ent2 )
 	local e1p = ent1:IsPlayer()
 	local e2p = ent2:IsPlayer()
 
-	if e1p or e2p then
+	if (e1p or e2p) and settings.enable_player_check then
 
 		if e1p then
 
 			if server_player_ents[ent1] == nil then server_player_ents[ent1] = {} end
-			if table.Count(server_player_ents[ent1]) > settings.player then return false end
-			server_player_ents[ent1][ent2] = true
+			local count = table.Count(server_player_ents[ent1]) > settings.player
+
+			if count then 
+				return false
+			else server_player_ents[ent1][ent2] = true end
 
 		else
 
 			if server_player_ents[ent2] == nil then server_player_ents[ent2] = {} end
-			if table.Count(server_player_ents[ent2]) > settings.player then return false end
-			server_player_ents[ent2][ent1] = true
+			local count = table.Count(server_player_ents[ent2]) > settings.player
+
+			if count then 
+				return false
+			else server_player_ents[ent2][ent1] = true end
 
 
 		end
@@ -144,7 +157,7 @@ canunfreeze = function(ply,ent)
 
     chunk_unfreeze[ply][position] = (chunk_unfreeze[ply][position] or 0) + ent.meshConvexes
 
-    --print(chunk_unfreeze[ply][position])
+    print(chunk_unfreeze[ply][position])
     if chunk_unfreeze[ply][position] >= settings.polygons then
     	chunk_unfreeze[ply]['message'] = true
     	return false
@@ -235,6 +248,21 @@ tick = function()
 	end
 
 	chunk_unfreeze = {}
+
+	--if player_update_ents < CurTime() then
+		for ply,tbl in pairs(server_player_ents) do
+			
+			for ent,_ in pairs(tbl) do
+				server_player_ents[ply][ent] = nil
+				break
+			end
+
+		end
+
+		--player_update_ents = CurTime() + settings.playerupdate
+	--end
+
+
 	server_player_ents = {}
 
 end
