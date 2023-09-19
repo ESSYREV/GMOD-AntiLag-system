@@ -2,11 +2,12 @@ print("Essyrev AntiLag system: Loading ")
 
 local settings = {}
 
-settings.polygons = 145000	------ Максимальное количество обработанных полигонов в одном чанке
+settings.polygons = 100000		------ Максимальное количество обработанных полигонов в одном чанке
 
-settings.count = 45	------ Максимальное количество обработанных колизий в одном чанке
+settings.count = 45				------ Максимальное количество обработанных колизий в одном чанке
+settings.delay = 0.5			------ Время обнуления количества столкновений в чанках [секунда]
 
-settings.size = 10------ Размер одного чанка для обработки колизии
+settings.size = 10 				------ Размер одного чанка для обработки колизии
 
 
 
@@ -20,6 +21,8 @@ local chunk_unfreeze = {}
 local server_frametime = {}
 local server_frametime_next = 0
 local can_send_message = 0
+local last_reset = 0
+local last_tick = 0
 local stress1
 local stress2
 local stress3
@@ -82,6 +85,9 @@ onEntityCreated = function(ent)
 end
 
 process_collision = function(ent1,ent2)
+
+	if last_tick-4 > CurTime() then return false end
+
 	local position = tostring(vecround(ent1:GetPos()))
 	chunk[position] = (chunk[position] or 0) + (ent1.meshConvexes or 0) + (ent2.meshConvexes or 0)
 	chunk["count"..position] = (chunk["count"..position] or 0) + 1
@@ -89,7 +95,8 @@ process_collision = function(ent1,ent2)
 	ent2.collisionCount = ent1.collisionCount + 1
 
 
-	if (ent1.shouldFreeze or ent2.shouldFreeze)  then 
+	print(chunk[position])
+	if ent1.shouldFreeze or ent2.shouldFreeze then 
 		return false
 	end
 
@@ -100,6 +107,8 @@ process_collision = function(ent1,ent2)
 
 			ent1.shouldFreeze = true
 			ent2.shouldFreeze = true
+
+			return false
 	end 
 end
 
@@ -120,6 +129,9 @@ end
 
 
 tick = function()
+
+	--print("LastTick: ",CurTime()-last_tick)
+	last_tick = CurTime()
 
 	if server_frametime_next <= CurTime() then
 		local frametime = engine.AbsoluteFrameTime()
@@ -179,7 +191,10 @@ tick = function()
 	end
 
 
-	chunk = {}
+	if last_reset < CurTime() then
+		chunk = {}
+		last_reset = CurTime() + settings.delay
+	end
 
 	for player,_ in pairs(chunk_unfreeze) do
 		print(chunk_unfreeze[player]['message'])
