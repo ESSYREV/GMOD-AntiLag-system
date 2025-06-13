@@ -1,8 +1,10 @@
 local trust = 0
 local revive_physics = 0
 timer.Create("simple_antilag_checks",5,0,function()
-	if revive_physics == 0 then return end
-
+	if revive_physics == 0 then 
+		if physenv.GetPhysicsPaused() then physenv.SetPhysicsPaused(false) end
+		return
+	end
 	if revive_physics < CurTime() then
 		revive_physics = 0
 		trust = 0
